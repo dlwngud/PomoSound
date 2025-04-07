@@ -9,4 +9,8 @@ sealed class Screen(
     data object Home : Screen("home")
 
     data object Setting : Screen("setting")
+
+    data object Sound : Screen("sound")
+
+    data object Timer : Screen("timer")
 }

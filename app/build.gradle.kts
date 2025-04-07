@@ -69,4 +69,11 @@ dependencies {
 
     // coil
     implementation("io.coil-kt.coil3:coil-compose:3.0.0")
+
+    // ExoPlayer
+    implementation("com.google.android.exoplayer:exoplayer-core:2.19.1")
+    implementation("com.google.android.exoplayer:exoplayer-ui:2.19.1")
+
+    // cloudy
+    implementation("com.github.skydoves:cloudy:0.2.3")
 }

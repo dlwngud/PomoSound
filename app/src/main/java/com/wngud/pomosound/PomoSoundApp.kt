@@ -1,7 +1,11 @@
 package com.wngud.pomosound
 
 import android.content.pm.ActivityInfo
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -17,9 +21,14 @@ import com.wngud.pomosound.utils.findActivity
 @Composable
 fun PomoSoundApp() {
     val navController = rememberNavController()
-    PomoSoundNavHost(
-        navController = navController
-    )
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        PomoSoundNavHost(
+            navController = navController
+        )
+    }
 }
 
 @Composable

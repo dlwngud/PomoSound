@@ -76,4 +76,8 @@ dependencies {
 
     // cloudy
     implementation("com.github.skydoves:cloudy:0.2.3")
+    implementation(kotlin("test"))
+
+    // Timber
+    implementation("com.jakewharton.timber:timber:5.0.1")
 }

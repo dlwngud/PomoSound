@@ -15,4 +15,10 @@ class PlaceRepositoryImpl @Inject constructor(
             emit(dataSource.places)
         }
     }
+
+    override fun getPlaceById(id: Int): Flow<PlaceItemData> {
+        return flow {
+            emit(dataSource.places.first { it.id == id })
+        }
+    }
 }

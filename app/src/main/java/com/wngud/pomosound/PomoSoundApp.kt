@@ -43,6 +43,7 @@ fun PomoSoundNavHost(
             Screen.Timer.route -> {
                 activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             }
+
             else -> {
                 activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             }
@@ -52,11 +53,16 @@ fun PomoSoundNavHost(
     NavHost(navController = navController, startDestination = Screen.Home.route) {
         composable(route = Screen.Home.route) {
             HomeScreen(
-                onNextClick = { navController.navigate(Screen.Sound.route) },
+                onNextClick = {
+                    navController.navigate(Screen.Sound.createRoute(it))
+                },
                 onSettingClick = { navController.navigate(Screen.Setting.route) }
             )
         }
-        composable(route = Screen.Setting.route) {
+        composable(
+            route = Screen.Setting.route,
+            arguments = Screen.Setting.navArguments
+        ) {
             SettingScreen(
                 onBackClick = { navController.popBackStack() }
             )

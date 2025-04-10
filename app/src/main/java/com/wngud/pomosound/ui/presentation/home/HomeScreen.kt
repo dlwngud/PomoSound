@@ -14,6 +14,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,14 +38,26 @@ import coil3.request.ImageRequest
 import com.wngud.pomosound.data.model.PlaceItemData
 import com.wngud.pomosound.ui.components.CustomTopAppBar
 import com.wngud.pomosound.ui.theme.PomoSoundTheme
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun HomeScreen(
-    onNextClick: () -> Unit = {},
+    onNextClick: (Int) -> Unit = {},
     onSettingClick: () -> Unit = {},
-    homeScreenViewModel: HomeScreenViewModel = hiltViewModel()
+    homeViewModel: HomeViewModel = hiltViewModel()
 ) {
-    val uiState by homeScreenViewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    val snackBarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        homeViewModel.sideEffects.collectLatest { sideEffect ->
+            when (sideEffect) {
+                HomeSideEffect.NavigateToSetting -> onSettingClick()
+                is HomeSideEffect.NavigateToSound -> onNextClick(sideEffect.id)
+                is HomeSideEffect.ShowSnackbar -> snackBarHostState.showSnackbar(sideEffect.message)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -52,13 +66,21 @@ fun HomeScreen(
                 navigationIcon = null,
                 actionIcon = Icons.Outlined.Settings,
                 onNavigationClick = {},
-                onActionClick = { onSettingClick() }
+                onActionClick = { homeViewModel.navigateToSetting() }
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         if (uiState.isLoading) {
-            CircularProgressIndicator()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
@@ -71,25 +93,24 @@ fun HomeScreen(
             ) {
                 items(uiState.places) { item ->
                     SoundItem(item = item) {
-                        onNextClick()
+                        homeViewModel.navigateToSound(it)
                     }
                 }
             }
         }
-
     }
 }
 
 @Composable
 fun SoundItem(
     item: PlaceItemData,
-    onNextClick: () -> Unit
+    onNextClick: (Int) -> Unit
 ) {
     Card(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onNextClick() },
+            .clickable { onNextClick(item.id) },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(

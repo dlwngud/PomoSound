@@ -21,5 +21,12 @@ sealed class Screen(
         fun createRoute(placeId: Int) = "sound/${placeId}"
     }
 
-    data object Timer : Screen("timer")
+    data object Timer : Screen(
+        route = "timer/{placeId}",
+        navArguments = listOf(navArgument("placeId") {
+            type = NavType.IntType
+        })
+    ) {
+        fun createRoute(placeId: Int) = "timer/${placeId}"
+    }
 }

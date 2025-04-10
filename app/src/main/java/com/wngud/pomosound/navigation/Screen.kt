@@ -1,6 +1,8 @@
 package com.wngud.pomosound.navigation
 
 import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 sealed class Screen(
     val route: String,
@@ -10,7 +12,14 @@ sealed class Screen(
 
     data object Setting : Screen("setting")
 
-    data object Sound : Screen("sound")
+    data object Sound : Screen(
+        route = "sound/{placeId}",
+        navArguments = listOf(navArgument("placeId") {
+            type = NavType.IntType
+        })
+    ) {
+        fun createRoute(placeId: Int) = "sound/${placeId}"
+    }
 
     data object Timer : Screen("timer")
 }

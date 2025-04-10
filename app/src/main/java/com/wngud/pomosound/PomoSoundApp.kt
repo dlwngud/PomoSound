@@ -67,13 +67,19 @@ fun PomoSoundNavHost(
                 onBackClick = { navController.popBackStack() }
             )
         }
-        composable(route = Screen.Sound.route) {
+        composable(
+            route = Screen.Sound.route,
+            arguments = Screen.Sound.navArguments
+        ) {
             SoundScreen(
                 onBackClick = { navController.popBackStack() },
-                onNextClick = { navController.navigate(Screen.Timer.route) }
+                onNextClick = { navController.navigate(Screen.Timer.createRoute(it)) }
             )
         }
-        composable(route = Screen.Timer.route) {
+        composable(
+            route = Screen.Timer.route,
+            arguments = Screen.Timer.navArguments
+        ) {
             TimerScreen()
         }
     }

@@ -24,61 +24,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.wngud.pomosound.R
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wngud.pomosound.data.model.SoundData
 import com.wngud.pomosound.ui.components.CustomBottomAppBar
 import com.wngud.pomosound.ui.components.CustomTopAppBar
 import com.wngud.pomosound.ui.theme.PomoSoundTheme
-
-data class SoundData(
-    val id: Int,
-    val name: String,
-    val icon: Int,
-)
-
-data class SoundCategory(
-    val name: String,
-    val sounds: List<SoundData>
-)
-
-val soundCategories = listOf(
-    SoundCategory(
-        name = "자연",
-        sounds = listOf(
-            SoundData(1, "비", R.drawable.ic_rain),
-            SoundData(2, "천둥", R.drawable.ic_thunder),
-            SoundData(3, "파도", R.drawable.ic_sea_waves),
-            SoundData(4, "새", R.drawable.ic_bird),
-            SoundData(5, "계곡", R.drawable.ic_valley),
-            SoundData(6, "바람", R.drawable.ic_wind),
-            SoundData(7, "풀벌레", R.drawable.ic_bug),
-            SoundData(8, "모닥불", R.drawable.ic_fire),
-            SoundData(9, "낙엽", R.drawable.ic_leaf),
-            SoundData(10, "물방울", R.drawable.ic_water_drop),
-            SoundData(11, "눈", R.drawable.ic_snow),
-        )
-    ),
-    SoundCategory(
-        name = "일상",
-        sounds = listOf(
-            SoundData(12, "책", R.drawable.ic_book),
-            SoundData(13, "선풍기", R.drawable.ic_pan),
-            SoundData(14, "커피 머신", R.drawable.ic_cafe),
-            SoundData(15, "시계", R.drawable.ic_clock),
-            SoundData(16, "연필", R.drawable.ic_pencil),
-            SoundData(17, "키보드", R.drawable.ic_keyboard),
-        )
-    ),
-    SoundCategory(
-        name = "도시",
-        sounds = listOf(
-            SoundData(18, "웅성거림", R.drawable.ic_noisily),
-            SoundData(19, "자동차", R.drawable.ic_car),
-            SoundData(20, "기차", R.drawable.ic_train),
-            SoundData(21, "공사", R.drawable.ic_build),
-            SoundData(22, "비행기", R.drawable.ic_plane),
-        )
-    ),
-)
+import kotlinx.coroutines.flow.collectLatest
 
 val iconBackgroundColor = Color(0xFF4F545C)
 val selectedBorderColor = Color(0xFF66DDAA)
@@ -89,9 +41,23 @@ const val DEFAULT_VOLUME = 0.0f
 @Composable
 fun SoundScreen(
     onBackClick: () -> Unit = {},
-    onNextClick: () -> Unit = {}
+    onNextClick: (Int) -> Unit = {},
+    soundViewModel: SoundViewModel = hiltViewModel()
 ) {
+    val uiState by soundViewModel.uiState.collectAsStateWithLifecycle()
     val selectedSounds = remember { mutableStateMapOf<Int, Float>() }
+
+    LaunchedEffect(Unit) {
+        soundViewModel.sideEffects.collectLatest { sideEffect ->
+            when (sideEffect) {
+                SoundSideEffect.NavigateBack -> onBackClick()
+                is SoundSideEffect.PlaySoundSide -> TODO()
+                is SoundSideEffect.StopSoundSide -> TODO()
+                is SoundSideEffect.NavigateToNext -> onNextClick(sideEffect.id)
+                is SoundSideEffect.ShowSnackbar -> TODO()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -99,7 +65,7 @@ fun SoundScreen(
                 title = "어떤 소리를 들을래요?",
                 navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
                 actionIcon = null,
-                onNavigationClick = onBackClick,
+                onNavigationClick = { soundViewModel.navigateToBack() },
                 onActionClick = {}
             )
         },
@@ -108,59 +74,70 @@ fun SoundScreen(
                 onFavoriteClick = {},
                 onAddClick = {},
                 onPlayClick = { },
-                onNextClick = { onNextClick() }
+                onNextClick = { soundViewModel.navigateToNext(soundViewModel.placeId) }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(soundCategories) { category ->
-                Column {
-                    Text(
-                        text = category.name,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 85.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(((category.sounds.size + 2) / 3 * 140).dp),
-                        contentPadding = PaddingValues(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(
-                            12.dp,
-                            Alignment.CenterHorizontally
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        userScrollEnabled = false
-                    ) {
-                        items(category.sounds) { sound ->
-                            val isSelected = selectedSounds.containsKey(sound.id)
-                            SoundIcon(
-                                sound = sound,
-                                isSelected = isSelected,
-                                volume = selectedSounds[sound.id] ?: 0f,
-                                onSelect = {
-                                    if (isSelected) {
-                                        selectedSounds.remove(sound.id)
-                                    } else {
-                                        selectedSounds[sound.id] = DEFAULT_VOLUME
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(uiState.soundItems) { category ->
+                    Column {
+                        Text(
+                            text = category.name,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 85.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(((category.sounds.size + 2) / 3 * 140).dp),
+                            contentPadding = PaddingValues(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                12.dp,
+                                Alignment.CenterHorizontally
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            userScrollEnabled = false
+                        ) {
+                            items(category.sounds) { sound ->
+                                val isSelected = selectedSounds.containsKey(sound.id)
+                                SoundIcon(
+                                    sound = sound,
+                                    isSelected = isSelected,
+                                    volume = selectedSounds[sound.id] ?: 0f,
+                                    onSelect = {
+                                        if (isSelected) {
+                                            selectedSounds.remove(sound.id)
+                                        } else {
+                                            selectedSounds[sound.id] = DEFAULT_VOLUME
+                                        }
+                                    },
+                                    onVolumeChange = { newVolume ->
+                                        if (isSelected) {
+                                            selectedSounds[sound.id] = newVolume
+                                        }
                                     }
-                                },
-                                onVolumeChange = { newVolume ->
-                                    if (isSelected) {
-                                        selectedSounds[sound.id] = newVolume
-                                    }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }

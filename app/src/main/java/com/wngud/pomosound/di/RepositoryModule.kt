@@ -1,7 +1,9 @@
 package com.wngud.pomosound.di
 
 import com.wngud.pomosound.data.repository.PlaceRepositoryImpl
+import com.wngud.pomosound.data.repository.SoundRepositoryImpl
 import com.wngud.pomosound.domain.repository.PlaceRepository
+import com.wngud.pomosound.domain.repository.SoundRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -15,4 +17,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPlaceRepository(placeRepositoryImpl: PlaceRepositoryImpl): PlaceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSoundRepository(soundRepositoryImpl: SoundRepositoryImpl): SoundRepository
 }

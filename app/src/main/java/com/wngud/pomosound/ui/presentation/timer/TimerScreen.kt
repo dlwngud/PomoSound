@@ -35,18 +35,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerView
 import com.skydoves.cloudy.cloudy
-import com.wngud.pomosound.R
 import com.wngud.pomosound.ui.theme.PomoSoundTheme
 import kotlinx.coroutines.delay
 
 @Composable
-fun TimerScreen() {
+fun TimerScreen(
+    timerViewModel: TimerViewModel = hiltViewModel(),
+) {
     /*
     신경과학적으로 입증된 방법
     집중 모드 활성화:
@@ -59,12 +62,15 @@ fun TimerScreen() {
     var applyBlur by remember { mutableStateOf(true) }
     var thumbnail by remember { mutableStateOf<Bitmap?>(null) }
 
+    val uiState by timerViewModel.uiState.collectAsStateWithLifecycle()
+
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-            val videoUri = Uri.parse("android.resource://${context.packageName}/${R.raw.fire_bg}")
+            val videoUri = Uri.parse("android.resource://${context.packageName}/${uiState.bgResource}")
             val mediaItem = MediaItem.fromUri(videoUri)
             setMediaItem(mediaItem)
             repeatMode = Player.REPEAT_MODE_ONE
+            volume = 0f
             prepare()
             playWhenReady = true
 
@@ -142,7 +148,6 @@ fun CountdownScreen(onTimerStart: () -> Unit) {
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = 500)
             )
-            delay(500)
             scale.animateTo(
                 targetValue = 0f,
                 animationSpec = tween(durationMillis = 500)
@@ -175,7 +180,7 @@ fun CountdownScreen(onTimerStart: () -> Unit) {
                 Text(
                     text = count.toString(),
                     fontSize = 100.sp,
-                    style = MaterialTheme.typography.displayLarge,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.scale(scale.value),
                     color = Color.White
@@ -185,7 +190,7 @@ fun CountdownScreen(onTimerStart: () -> Unit) {
                 Text(
                     text = "Let's Go!",
                     fontSize = 60.sp,
-                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.scale(scale.value),
                     color = Color.White

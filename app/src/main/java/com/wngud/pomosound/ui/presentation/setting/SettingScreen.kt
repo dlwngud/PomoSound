@@ -24,7 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val iconBackgroundColor = Color(0xFF4F545C)
+val iconBackgroundColor = Color(0xFF212121)
 
 @Composable
 fun SettingScreen(
@@ -201,6 +201,7 @@ fun SectionHeader(title: String) {
     Text(
         text = title,
         fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
         color = Color.Gray,
         modifier = Modifier.padding(vertical = 16.dp)
     )
@@ -256,7 +257,7 @@ fun SettingItem(
                 Text(
                     text = title,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = description,

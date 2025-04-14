@@ -10,6 +10,7 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import com.wngud.pomosound.R
 
 @Composable
 fun CustomBottomAppBar(
+    isPlaying: Boolean,
     onFavoriteClick: () -> Unit,
     onAddClick: () -> Unit,
     onPlayClick: () -> Unit,
@@ -54,9 +56,13 @@ fun CustomBottomAppBar(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { onNextClick() },
-                    containerColor = Color(0xFF66DDAA)
+                    containerColor = MaterialTheme.colorScheme.primary
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, "Localized description")
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        "Localized description",
+                        tint = Color.White
+                    )
                 }
             }
         )
@@ -68,8 +74,8 @@ fun CustomBottomAppBar(
                 .padding(top = 16.dp)
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.ic_play),
-                contentDescription = "Localized description"
+                painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                contentDescription = if (isPlaying) "Pause" else "Play"
             )
         }
     }
@@ -81,6 +87,7 @@ fun CustomBottomAppBarPreview() {
     Scaffold(
         bottomBar = {
             CustomBottomAppBar(
+                isPlaying = false,
                 onFavoriteClick = {},
                 onAddClick = {},
                 onPlayClick = {},

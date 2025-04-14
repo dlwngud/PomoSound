@@ -24,8 +24,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val iconBackgroundColor = Color(0xFF212121)
-
 @Composable
 fun SettingScreen(
     onBackClick: () -> Unit
@@ -68,24 +66,21 @@ fun TimerSettingsSection() {
     SectionHeader(title = "타이머 설정")
 
     SettingItem(
-        iconBackground = Color(0xFFE8E3FF),
-        iconTint = Color(0xFF5D5FEF),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "⏰",
         title = "시간 설정",
         description = "기본 25분 외에 자유 입력 또는 미리 설정된 옵션"
     )
 
     SettingItem(
-        iconBackground = Color(0xFFE6F8E6),
-        iconTint = Color(0xFF4CAF50),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "⏱️",
         title = "포모도로 모드",
         description = "집중 시간 + 휴식 시간 반복 사이클 설정"
     )
 
     SettingItem(
-        iconBackground = Color(0xFFE8E3FF),
-        iconTint = Color(0xFF5D5FEF),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "🔔",
         title = "타이머 알림",
         description = "종료 시 알림음, 볼륨, 진동 및 반복 설정"
@@ -98,8 +93,7 @@ fun ScreenSettingsSection() {
 
     // Keep Screen On
     SettingItemWithSwitch(
-        iconBackground = Color(0xFFFFF8E6),
-        iconTint = Color(0xFFFFB300),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "📱",
         title = "화면 유지",
         description = "타이머 작동 중 화면 설정 옵션",
@@ -108,8 +102,7 @@ fun ScreenSettingsSection() {
 
     // Battery Saving Mode
     SettingItemWithSwitch(
-        iconBackground = Color(0xFFE6F8E6),
-        iconTint = Color(0xFF4CAF50),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "🔋",
         title = "배터리 절약 모드",
         description = "화면 밝기 자동 낮춤 + 동영상 일시정지 옵션",
@@ -122,8 +115,7 @@ fun NotificationsAndAccessibilitySection() {
     SectionHeader(title = "알림 및 접근성")
 
     SettingItemWithSwitch(
-        iconBackground = Color(0xFFFFE6E6),
-        iconTint = Color(0xFFFF5252),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "🔔",
         title = "푸시 알림",
         description = "집중 시간 리마인더 설정",
@@ -131,8 +123,7 @@ fun NotificationsAndAccessibilitySection() {
     )
 
     SettingItem(
-        iconBackground = Color(0xFFE6F7FF),
-        iconTint = Color(0xFF2196F3),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "🌐",
         title = "언어 선택",
         description = "앱 내 언어 및 설명 언어 설정"
@@ -144,24 +135,21 @@ fun AppInfoAndSupportSection() {
     SectionHeader(title = "앱 정보 및 지원")
 
     SettingItem(
-        iconBackground = Color(0xFFE6F7FF),
-        iconTint = Color(0xFF2196F3),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "💬",
         title = "피드백 및 문의",
         description = "개발자에게 피드백 전송 및 FAQ"
     )
 
     SettingItem(
-        iconBackground = Color(0xFFE6F7FF),
-        iconTint = Color(0xFF2196F3),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "📝",
         title = "약관 및 개인정보",
         description = "서비스 이용약관, 개인정보 처리방침"
     )
 
     SettingItem(
-        iconBackground = Color(0xFFE6F7FF),
-        iconTint = Color(0xFF2196F3),
+        iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "ℹ️",
         title = "버전 정보",
         description = "현재 앱 버전 표시 및 업데이트 확인"
@@ -210,7 +198,6 @@ fun SectionHeader(title: String) {
 @Composable
 fun SettingItem(
     iconBackground: Color,
-    iconTint: Color,
     icon: String,
     title: String,
     description: String
@@ -221,7 +208,7 @@ fun SettingItem(
             .padding(vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = iconBackgroundColor
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 0.dp
@@ -243,8 +230,7 @@ fun SettingItem(
             ) {
                 Text(
                     text = icon,
-                    fontSize = 16.sp,
-                    color = iconTint
+                    fontSize = 16.sp
                 )
             }
 
@@ -272,7 +258,6 @@ fun SettingItem(
 @Composable
 fun SettingItemWithSwitch(
     iconBackground: Color,
-    iconTint: Color,
     icon: String,
     title: String,
     description: String,
@@ -286,7 +271,7 @@ fun SettingItemWithSwitch(
             .padding(vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = iconBackgroundColor
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 0.dp
@@ -308,8 +293,7 @@ fun SettingItemWithSwitch(
             ) {
                 Text(
                     text = icon,
-                    fontSize = 16.sp,
-                    color = iconTint
+                    fontSize = 16.sp
                 )
             }
 
@@ -337,7 +321,7 @@ fun SettingItemWithSwitch(
                 onCheckedChange = { switchState = it },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF5D5FEF),
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
                     uncheckedThumbColor = Color.White,
                     uncheckedTrackColor = Color.LightGray
                 )

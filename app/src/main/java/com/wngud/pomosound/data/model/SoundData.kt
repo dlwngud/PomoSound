@@ -4,4 +4,5 @@ data class SoundData(
     val id: Int,
     val name: String,
     val icon: Int,
+    val soundResId: Int
 )

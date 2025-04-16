@@ -32,12 +32,6 @@ import com.wngud.pomosound.ui.components.CustomTopAppBar
 import com.wngud.pomosound.ui.theme.PomoSoundTheme
 import kotlinx.coroutines.flow.collectLatest
 
-val iconBackgroundColor = Color(0xFF4F545C)
-val selectedBorderColor = Color(0xFF66DDAA)
-val iconColor = Color.White
-
-const val DEFAULT_VOLUME = 0.0f
-
 @Composable
 fun SoundScreen(
     onBackClick: () -> Unit = {},
@@ -45,16 +39,17 @@ fun SoundScreen(
     soundViewModel: SoundViewModel = hiltViewModel()
 ) {
     val uiState by soundViewModel.uiState.collectAsStateWithLifecycle()
-    val selectedSounds = remember { mutableStateMapOf<Int, Float>() }
+    val isPlaying by soundViewModel.isPlaying.collectAsStateWithLifecycle()
+    val snackBarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         soundViewModel.sideEffects.collectLatest { sideEffect ->
             when (sideEffect) {
                 SoundSideEffect.NavigateBack -> onBackClick()
-                is SoundSideEffect.PlaySoundSide -> TODO()
-                is SoundSideEffect.StopSoundSide -> TODO()
                 is SoundSideEffect.NavigateToNext -> onNextClick(sideEffect.id)
-                is SoundSideEffect.ShowSnackbar -> TODO()
+                is SoundSideEffect.ShowSnackbar -> {
+                    snackBarHostState.showSnackbar(sideEffect.message)
+                }
             }
         }
     }
@@ -71,9 +66,10 @@ fun SoundScreen(
         },
         bottomBar = {
             CustomBottomAppBar(
+                isPlaying = isPlaying,
                 onFavoriteClick = {},
                 onAddClick = {},
-                onPlayClick = { },
+                onPlayClick = { soundViewModel.postEvent(SoundEvent.GlobalPlayPauseClicked) },
                 onNextClick = { soundViewModel.navigateToNext(soundViewModel.placeId) }
             )
         },
@@ -95,21 +91,27 @@ fun SoundScreen(
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(uiState.soundItems) { category ->
+                items(uiState.soundCategories) { category ->
                     Column {
                         Text(
                             text = category.name,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 12.dp)
+                            modifier = Modifier.padding(bottom = 12.dp),
+                            color = Color.White
                         )
+                        val columns = 3
+                        val rows = (category.sounds.size + columns - 1) / columns
+                        val gridHeight =
+                            (rows * (80 + 4 + 48 + 12)).dp // icon + spacer + control + vertical spacing
+
                         LazyVerticalGrid(
                             columns = GridCells.Adaptive(minSize = 85.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(((category.sounds.size + 2) / 3 * 140).dp),
+                                .height(gridHeight), // Use calculated height
                             contentPadding = PaddingValues(4.dp),
                             horizontalArrangement = Arrangement.spacedBy(
                                 12.dp,
@@ -119,22 +121,23 @@ fun SoundScreen(
                             userScrollEnabled = false
                         ) {
                             items(category.sounds) { sound ->
-                                val isSelected = selectedSounds.containsKey(sound.id)
+                                val isSoundSelected =
+                                    uiState.isSoundSelected(sound.id) // Check if selected
+                                val volume = uiState.getVolume(sound.id)
                                 SoundIcon(
                                     sound = sound,
-                                    isSelected = isSelected,
-                                    volume = selectedSounds[sound.id] ?: 0f,
+                                    isSelected = isSoundSelected, // Use selected state for UI
+                                    volume = volume, // Use volume from ViewModel
                                     onSelect = {
-                                        if (isSelected) {
-                                            selectedSounds.remove(sound.id)
-                                        } else {
-                                            selectedSounds[sound.id] = DEFAULT_VOLUME
-                                        }
+                                        soundViewModel.postEvent(SoundEvent.SoundItemClicked(sound))
                                     },
                                     onVolumeChange = { newVolume ->
-                                        if (isSelected) {
-                                            selectedSounds[sound.id] = newVolume
-                                        }
+                                        soundViewModel.postEvent(
+                                            SoundEvent.VolumeChanged(
+                                                sound.id,
+                                                newVolume
+                                            )
+                                        )
                                     }
                                 )
                             }
@@ -149,15 +152,15 @@ fun SoundScreen(
 @Composable
 fun SoundIcon(
     sound: SoundData,
-    isSelected: Boolean,
+    isSelected: Boolean, // Renamed from isSoundPlaying for clarity in this scope
     volume: Float,
     onSelect: () -> Unit,
     onVolumeChange: (Float) -> Unit
 ) {
-    val iconBgColor = iconBackgroundColor
-    val border = if (isSelected) BorderStroke(2.dp, selectedBorderColor) else null
+    val iconBgColor = MaterialTheme.colorScheme.surfaceContainerLowest
+    val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     val iconSize = 80.dp
-    val sliderHeight = 48.dp
+    val controlHeight = 48.dp // Height for either Slider or Text
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -180,40 +183,71 @@ fun SoundIcon(
             Icon(
                 painter = painterResource(id = sound.icon),
                 contentDescription = sound.name,
-                tint = if (!isSelected) iconColor else selectedBorderColor,
+                tint = if (!isSelected) Color.White else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(iconSize * 0.5f)
             )
         }
 
-        if (isSelected) {
-            Slider(
-                value = volume,
-                onValueChange = onVolumeChange,
-                modifier = Modifier
-                    .width(iconSize)
-                    .height(sliderHeight),
-                valueRange = 0f..1f,
-                colors = SliderDefaults.colors(
-                    thumbColor = selectedBorderColor,
-                    activeTrackColor = selectedBorderColor.copy(alpha = 0.7f),
-                    inactiveTrackColor = iconBackgroundColor.copy(alpha = 0.5f)
+        // Spacer for consistent layout regardless of slider visibility
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Box(modifier = Modifier.height(controlHeight)) { // Use Box to reserve space
+            if (isSelected) {
+                Slider(
+                    value = volume,
+                    onValueChange = onVolumeChange,
+                    modifier = Modifier
+                        .width(iconSize)
+                        .fillMaxHeight() // Fill the reserved height
+                        .align(Alignment.Center), // Center slider within the box
+                    valueRange = 0f..1f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(
+                            alpha = 0.5f
+                        )
+                    )
                 )
-            )
-        } else {
-            Text(
-                text = sound.name,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.height(sliderHeight)
-            )
+            } else {
+                Text(
+                    text = sound.name,
+                    fontSize = 14.sp, // Slightly smaller to fit better
+                    fontWeight = FontWeight.Medium, // Adjusted weight
+                    color = Color.White, // Ensure text is visible
+                    modifier = Modifier.align(Alignment.Center) // Center text within the box
+                )
+            }
         }
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF2C2F33)
+@Preview(showBackground = true, backgroundColor = 0xFF1A1C1E)
 @Composable
 fun SoundScreenPreview() {
     PomoSoundTheme {
-        SoundScreen()
+        Scaffold(
+            topBar = {
+                CustomTopAppBar(
+                    title = "어떤 소리를 들을래요?",
+                    navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                    actionIcon = null,
+                    onNavigationClick = { },
+                    onActionClick = {}
+                )
+            },
+            bottomBar = {
+                CustomBottomAppBar(
+                    isPlaying = false, // Preview with default state
+                    onFavoriteClick = {},
+                    onAddClick = {},
+                    onPlayClick = { },
+                    onNextClick = { }
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            Text("Preview Content", Modifier.padding(paddingValues), color = Color.White)
+        }
     }
 }

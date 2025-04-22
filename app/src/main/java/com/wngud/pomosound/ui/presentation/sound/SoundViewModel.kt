@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wngud.pomosound.data.model.SoundCategory
 import com.wngud.pomosound.data.model.SoundData
+import com.wngud.pomosound.domain.repository.FavoriteRepository
 import com.wngud.pomosound.domain.repository.SoundRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -47,6 +48,7 @@ sealed class SoundEvent {
     data class SoundItemClicked(val soundData: SoundData) : SoundEvent()
     data class VolumeChanged(val id: Int, val volume: Float) : SoundEvent()
     object GlobalPlayPauseClicked : SoundEvent()
+    data class SaveFavorite(val name: String, val sounds: List<Pair<Int, Float>>) : SoundEvent()
 }
 
 sealed class SoundSideEffect {
@@ -59,6 +61,7 @@ sealed class SoundSideEffect {
 class SoundViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val soundRepository: SoundRepository,
+    private val favoriteRepository: FavoriteRepository, // Inject FavoriteRepository
     private val application: Application
 ) : ViewModel() {
     val placeId: Int = savedStateHandle.get<Int>(PLACE_ID_SAVED_STATE_KEY)!!
@@ -86,6 +89,7 @@ class SoundViewModel @Inject constructor(
             is SoundEvent.SoundItemClicked -> handleSoundClick(event.soundData)
             is SoundEvent.VolumeChanged -> handleVolumeChange(event.id, event.volume)
             SoundEvent.GlobalPlayPauseClicked -> handleGlobalPlayPauseClick()
+            is SoundEvent.SaveFavorite -> saveFavorite(event.name, event.sounds)
         }
     }
 
@@ -300,6 +304,18 @@ class SoundViewModel @Inject constructor(
                 .collectLatest { sounds ->
                     _uiState.update { it.copy(isLoading = false, soundCategories = sounds) }
                 }
+        }
+    }
+
+    private fun saveFavorite(name: String, sounds: List<Pair<Int, Float>>) {
+        viewModelScope.launch {
+            try {
+                favoriteRepository.saveFavorite(name, sounds)
+                postSideEffect(SoundSideEffect.ShowSnackbar("'$name' 즐겨찾기에 저장되었습니다."))
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving favorite '$name': ${e.message}", e)
+                postSideEffect(SoundSideEffect.ShowSnackbar("즐겨찾기 저장 실패"))
+            }
         }
     }
 

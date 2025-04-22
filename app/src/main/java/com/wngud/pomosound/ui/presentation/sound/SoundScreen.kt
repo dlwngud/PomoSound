@@ -13,8 +13,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +43,7 @@ fun SoundScreen(
     val uiState by soundViewModel.uiState.collectAsStateWithLifecycle()
     val isPlaying by soundViewModel.isPlaying.collectAsStateWithLifecycle()
     val snackBarHostState = remember { SnackbarHostState() }
+    var showFavoriteDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         soundViewModel.sideEffects.collectLatest { sideEffect ->
@@ -67,8 +70,8 @@ fun SoundScreen(
         bottomBar = {
             CustomBottomAppBar(
                 isPlaying = isPlaying,
-                onFavoriteClick = {},
-                onAddClick = {},
+                onFavoriteClick = {}, // Placeholder for future favorite list viewing
+                onAddClick = { showFavoriteDialog = true }, // Show the dialog
                 onPlayClick = { soundViewModel.postEvent(SoundEvent.GlobalPlayPauseClicked) },
                 onNextClick = { soundViewModel.navigateToNext(soundViewModel.placeId) }
             )
@@ -142,10 +145,100 @@ fun SoundScreen(
                                 )
                             }
                         }
+
+                        // Call the Favorite Dialog
+                        if (showFavoriteDialog) {
+                            val selectedSounds = uiState.soundCategories
+                                .flatMap { it.sounds }
+                                .filter { uiState.isSoundSelected(it.id) }
+                                .map { sound -> sound to uiState.getVolume(sound.id) } // Pair sound with its volume
+
+                            FavoriteDialog(
+                                showDialog = showFavoriteDialog,
+                                selectedSounds = selectedSounds,
+                                onDismiss = { showFavoriteDialog = false },
+                                onSave = { favoriteName, soundsToSave ->
+                                    // Map List<Pair<SoundData, Float>> to List<Pair<Int, Float>> for saving
+                                    val soundsToSaveMapped =
+                                        soundsToSave.map { (sound, volume) -> sound.id to volume }
+                                    soundViewModel.postEvent(
+                                        SoundEvent.SaveFavorite(
+                                            favoriteName,
+                                            soundsToSaveMapped
+                                        )
+                                    )
+                                    showFavoriteDialog = false // Dismiss dialog after posting event
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun FavoriteDialog(
+    showDialog: Boolean,
+    selectedSounds: List<Pair<SoundData, Float>>, // Pass pairs of SoundData and Volume
+    onDismiss: () -> Unit,
+    onSave: (String, List<Pair<SoundData, Float>>) -> Unit
+) {
+    if (showDialog) {
+        var favoriteName by rememberSaveable { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("즐겨찾기") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = favoriteName,
+                        onValueChange = { favoriteName = it },
+                        label = { Text("즐겨찾기 이름") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("선택된 소리:", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        selectedSounds.forEach { (sound, _) -> // Only need sound for icon
+                            Icon(
+                                painter = painterResource(id = sound.icon),
+                                contentDescription = sound.name,
+                                modifier = Modifier.size(32.dp), // Smaller icon size
+                                tint = MaterialTheme.colorScheme.primary // Use primary color for visibility
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (favoriteName.isNotBlank() && selectedSounds.isNotEmpty()) {
+                            onSave(favoriteName, selectedSounds)
+                        }
+                        // Optionally show a message if name is blank or no sounds selected
+                    },
+                    enabled = favoriteName.isNotBlank() && selectedSounds.isNotEmpty()
+                ) {
+                    Text("저장")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("취소")
+                }
+            }
+        )
     }
 }
 
@@ -221,6 +314,59 @@ fun SoundIcon(
         }
     }
 }
+
+// Preview for the Dialog (Optional but helpful)
+@Preview(showBackground = true, backgroundColor = 0xFF1A1C1E)
+@Composable
+fun FavoriteDialogPreview() {
+    PomoSoundTheme {
+        val sampleSounds = listOf(
+            SoundData(
+                1,
+                "Bird",
+                com.wngud.pomosound.R.drawable.ic_bird,
+                com.wngud.pomosound.R.raw.bird
+            ) to 0.5f,
+            SoundData(
+                2,
+                "Rain",
+                com.wngud.pomosound.R.drawable.ic_rain,
+                com.wngud.pomosound.R.raw.rain
+            ) to 0.8f,
+            SoundData(
+                3,
+                "Fire",
+                com.wngud.pomosound.R.drawable.ic_fire,
+                com.wngud.pomosound.R.raw.fire
+            ) to 0.3f,
+            SoundData(
+                4,
+                "Wind",
+                com.wngud.pomosound.R.drawable.ic_wind,
+                com.wngud.pomosound.R.raw.soft_wind
+            ) to 1.0f,
+            SoundData(
+                5,
+                "Keyboard",
+                com.wngud.pomosound.R.drawable.ic_keyboard,
+                com.wngud.pomosound.R.raw.keyboard
+            ) to 0.6f,
+            SoundData(
+                6,
+                "Cafe",
+                com.wngud.pomosound.R.drawable.ic_cafe,
+                com.wngud.pomosound.R.raw.coffee
+            ) to 0.7f,
+        )
+        FavoriteDialog(
+            showDialog = true,
+            selectedSounds = sampleSounds,
+            onDismiss = {},
+            onSave = { _, _ -> }
+        )
+    }
+}
+
 
 @Preview(showBackground = true, backgroundColor = 0xFF1A1C1E)
 @Composable

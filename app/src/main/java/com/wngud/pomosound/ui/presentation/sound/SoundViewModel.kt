@@ -53,6 +53,7 @@ sealed class SoundEvent {
 
 sealed class SoundSideEffect {
     object NavigateBack : SoundSideEffect()
+    object NavigateToFavorite : SoundSideEffect()
     data class NavigateToNext(val id: Int) : SoundSideEffect()
     data class ShowSnackbar(val message: String) : SoundSideEffect()
 }
@@ -291,6 +292,10 @@ class SoundViewModel @Inject constructor(
 
     fun navigateToNext(id: Int) {
         postSideEffect(SoundSideEffect.NavigateToNext(id))
+    }
+
+    fun navigateToFavorite() {
+        postSideEffect(SoundSideEffect.NavigateToFavorite)
     }
 
     private fun loadSounds() {

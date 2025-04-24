@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun SoundScreen(
     onBackClick: () -> Unit = {},
     onNextClick: (Int) -> Unit = {},
+    onFavoriteClick: () -> Unit = {},
     soundViewModel: SoundViewModel = hiltViewModel()
 ) {
     val uiState by soundViewModel.uiState.collectAsStateWithLifecycle()
@@ -53,6 +54,7 @@ fun SoundScreen(
                 is SoundSideEffect.ShowSnackbar -> {
                     snackBarHostState.showSnackbar(sideEffect.message)
                 }
+                SoundSideEffect.NavigateToFavorite -> onFavoriteClick()
             }
         }
     }
@@ -70,7 +72,7 @@ fun SoundScreen(
         bottomBar = {
             CustomBottomAppBar(
                 isPlaying = isPlaying,
-                onFavoriteClick = {}, // Placeholder for future favorite list viewing
+                onFavoriteClick = { soundViewModel.navigateToFavorite() }, // Placeholder for future favorite list viewing
                 onAddClick = { showFavoriteDialog = true }, // Show the dialog
                 onPlayClick = { soundViewModel.postEvent(SoundEvent.GlobalPlayPauseClicked) },
                 onNextClick = { soundViewModel.navigateToNext(soundViewModel.placeId) }

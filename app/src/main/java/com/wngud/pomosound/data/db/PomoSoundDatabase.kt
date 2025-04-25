@@ -2,10 +2,8 @@ package com.wngud.pomosound.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
 
-@Database(entities = [FavoriteSound::class], version = 1, exportSchema = false)
-@TypeConverters(Converters::class)
+@Database(entities = [FavoriteSound::class, FavoriteSoundItem::class], version = 2, exportSchema = false)
 abstract class PomoSoundDatabase : RoomDatabase() {
     abstract fun favoriteSoundDao(): FavoriteSoundDao
 }

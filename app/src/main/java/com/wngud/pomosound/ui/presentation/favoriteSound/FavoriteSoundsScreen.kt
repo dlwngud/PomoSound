@@ -10,8 +10,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,58 +30,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.wngud.pomosound.R
+import com.wngud.pomosound.data.db.FavoriteSoundWithItems
 import com.wngud.pomosound.ui.components.CustomTopAppBar
 import com.wngud.pomosound.ui.theme.PomoSoundTheme
 
-// Dummy data class for demonstration
-data class FavoriteSound(
-    val id: Int,
-    val title: String,
-    val icons: List<Int>, // List of drawable resource IDs
-    val isPlaying: Boolean = false
-)
-
-// Dummy data list
-val dummyFavoriteSounds = listOf(
-    FavoriteSound(
-        1,
-        "비 내리는 숲속",
-        listOf(R.drawable.ic_rain, R.drawable.ic_water_drop, R.drawable.ic_wind)
-    ),
-    FavoriteSound(
-        2,
-        "도시 소음",
-        listOf(R.drawable.ic_car, R.drawable.ic_cafe, R.drawable.ic_keyboard, R.drawable.ic_build),
-        isPlaying = true
-    ),
-    FavoriteSound(
-        3,
-        "바다 소리",
-        listOf(R.drawable.ic_sea_waves, R.drawable.ic_wind, R.drawable.ic_bird)
-    ), // Assuming bird for the last icon
-    FavoriteSound(
-        4,
-        "수면 모드",
-        listOf(
-            R.drawable.ic_wind,
-            R.drawable.ic_water_drop,
-            R.drawable.ic_clock,
-            R.drawable.ic_fire
-        )
-    ), // Assuming clock and fire
-    FavoriteSound(
-        5,
-        "집중 모드",
-        listOf(R.drawable.ic_wind, R.drawable.ic_fire, R.drawable.ic_clock)
-    ) // Assuming clock
-)
 
 @Composable
 fun FavoriteSoundsScreen(
+    viewModel: FavoriteSoundsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
 ) {
-    var favoriteSounds by remember { mutableStateOf(dummyFavoriteSounds) }
+    val state by viewModel.state.collectAsState()
 
     Scaffold(
         topBar = {
@@ -81,33 +51,58 @@ fun FavoriteSoundsScreen(
                 navigationIcon = Icons.Filled.Close,
                 actionIcon = null,
                 onNavigationClick = onNavigateBack,
-                onActionClick = { }
+                onActionClick = { } // No action needed in this screen's top bar
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp) // Add padding top and bottom for the list
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center // Center loading indicator
         ) {
-            items(favoriteSounds, key = { it.id }) { sound ->
-                FavoriteSoundItem(
-                    sound = sound,
-                    onPlayPauseClick = { id ->
-                        favoriteSounds = favoriteSounds.map {
-                            if (it.id == id) it.copy(isPlaying = !it.isPlaying) else it.copy(
-                                isPlaying = false
-                            ) // Toggle play, stop others
-                        }
-                    },
-                    onDeleteClick = { id ->
-                        favoriteSounds = favoriteSounds.filterNot { it.id == id }
-                    }
+            if (state.isLoading) {
+                CircularProgressIndicator()
+            } else if (state.error != null) {
+                Text(
+                    text = "Error: ${state.error}",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
                 )
+            } else if (state.favoriteSounds.isEmpty()) {
+                Text(
+                    text = "즐겨찾기한 소리가 없습니다.",
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp)
+                ) {
+                    items(state.favoriteSounds, key = { it.favoriteSound.id }) { favoriteSoundWithItems ->
+                        val isPlaying = state.playingSoundId == favoriteSoundWithItems.favoriteSound.id
+                        FavoriteSoundItem(
+                            sound = favoriteSoundWithItems,
+                            isPlaying = isPlaying,
+                            onPlayPauseClick = {
+                                if (isPlaying) {
+                                    viewModel.handleIntent(FavoriteSoundsIntent.PauseSound)
+                                } else {
+                                    viewModel.handleIntent(FavoriteSoundsIntent.PlaySound(favoriteSoundWithItems))
+                                }
+                            },
+                            onDeleteClick = {
+                                viewModel.handleIntent(FavoriteSoundsIntent.DeleteSound(favoriteSoundWithItems.favoriteSound))
+                            },
+                            soundIdToResIdMap = state.soundIdToResIdMap
+                        )
+                    }
+                }
             }
         }
     }
@@ -115,21 +110,23 @@ fun FavoriteSoundsScreen(
 
 @Composable
 fun FavoriteSoundItem(
-    sound: FavoriteSound,
-    onPlayPauseClick: (Int) -> Unit,
-    onDeleteClick: (Int) -> Unit,
+    sound: FavoriteSoundWithItems,
+    isPlaying: Boolean,
+    onPlayPauseClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    soundIdToResIdMap: Map<Int, Int>, // Add the map as a parameter
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest // Dark gray background from image
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
         ),
-        border = if (sound.isPlaying) BorderStroke(
+        border = if (isPlaying) BorderStroke(
             2.dp,
             MaterialTheme.colorScheme.primary
-        ) else null // Teal border if playing
+        ) else null
     ) {
         Row(
             modifier = Modifier
@@ -139,20 +136,24 @@ fun FavoriteSoundItem(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp) // Space between title and icons
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = sound.title,
+                    text = sound.favoriteSound.name, // Use name from FavoriteSound entity
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    sound.icons.forEach { iconRes ->
+                    // Display icons based on the soundId from FavoriteSoundItem
+                    sound.items.forEach { item ->
+                        // Use the map from the ViewModel to get the correct resource ID
+                        val soundResId = soundIdToResIdMap[item.soundId] ?: R.drawable.ic_plane // Default icon if not found
+                        val iconRes = getIconResourceForSoundId(soundResId)
                         Icon(
                             painter = painterResource(id = iconRes),
-                            contentDescription = null, // Decorative icons
-                            tint = MaterialTheme.colorScheme.primary, // Teal color for icons
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -164,23 +165,23 @@ fun FavoriteSoundItem(
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Play/Pause Button
                 IconButton(
-                    onClick = { onPlayPauseClick(sound.id) },
+                    onClick = onPlayPauseClick, // Use the passed lambda directly
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(
-                        painter = painterResource(id = if (sound.isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
-                        contentDescription = if (sound.isPlaying) "Pause" else "Play",
-                        tint = Color.White, // Icon color inside button
+                        painter = painterResource(id = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
                 }
 
                 // Delete Button
                 IconButton(
-                    onClick = { onDeleteClick(sound.id) },
+                    onClick = onDeleteClick, // Use the passed lambda directly
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
@@ -198,34 +199,55 @@ fun FavoriteSoundItem(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF1E1E1E) // Dark background for preview
+// Helper function to map soundId to drawable resource ID
+// TODO: Replace with your actual mapping logic
+fun getIconResourceForSoundId(soundId: Int): Int {
+    return when (soundId) {
+        R.raw.rain -> R.drawable.ic_rain
+        R.raw.thunder -> R.drawable.ic_thunder
+        R.raw.wave -> R.drawable.ic_sea_waves
+        R.raw.bird -> R.drawable.ic_bird
+        R.raw.valley -> R.drawable.ic_valley
+        R.raw.soft_wind -> R.drawable.ic_wind
+        R.raw.bug -> R.drawable.ic_bug
+        R.raw.fire -> R.drawable.ic_fire
+        R.raw.fallen_leaves -> R.drawable.ic_leaf
+        R.raw.water_drop -> R.drawable.ic_water_drop
+        R.raw.snow -> R.drawable.ic_snow
+        R.raw.book -> R.drawable.ic_book
+        R.raw.fan -> R.drawable.ic_pan
+        R.raw.coffee -> R.drawable.ic_cafe
+        R.raw.clock -> R.drawable.ic_clock
+        R.raw.pencil -> R.drawable.ic_pencil
+        R.raw.keyboard -> R.drawable.ic_keyboard
+        R.raw.conversation -> R.drawable.ic_noisily
+        R.raw.car -> R.drawable.ic_car
+        R.raw.train -> R.drawable.ic_train
+        R.raw.roadworks -> R.drawable.ic_build
+        else -> R.drawable.ic_plane
+    }
+}
+
+// Previews might need adjustment or dummy ViewModel/State for isolation
+@Preview(showBackground = true, backgroundColor = 0xFF1E1E1E)
 @Composable
 fun FavoriteSoundsScreenPreview() {
     PomoSoundTheme {
-        FavoriteSoundsScreen()
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun FavoriteSoundItemPreview() {
-    PomoSoundTheme {
-        FavoriteSoundItem(
-            sound = dummyFavoriteSounds[0],
-            onPlayPauseClick = {},
-            onDeleteClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun FavoriteSoundItemPlayingPreview() {
-    PomoSoundTheme {
-        FavoriteSoundItem(
-            sound = dummyFavoriteSounds[1],
-            onPlayPauseClick = {},
-            onDeleteClick = {}
-        )
+        // Preview with dummy data or a fake ViewModel might be needed
+        // For simplicity, showing an empty screen state
+        Scaffold(
+            topBar = {
+                CustomTopAppBar(
+                    title = "즐겨찾기한 소리",
+                    navigationIcon = Icons.Filled.Close,
+                    onNavigationClick = {}
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { padding ->
+            Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Preview - No Data", color = Color.White)
+            }
+        }
     }
 }

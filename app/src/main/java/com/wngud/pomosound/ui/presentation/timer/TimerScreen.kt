@@ -52,14 +52,6 @@ import kotlinx.coroutines.delay
 fun TimerScreen(
     timerViewModel: TimerViewModel = hiltViewModel(),
 ) {
-    /*
-    신경과학적으로 입증된 방법
-    집중 모드 활성화:
-
-    소리내어 "5, 4, 3, 2, 1" 카운트다운
-    깊게 숨을 들이마시고 잠시 참기
-    일을 시작하세요!
-    */
     val context = LocalContext.current
     var applyBlur by remember { mutableStateOf(true) }
     var thumbnail by remember { mutableStateOf<Bitmap?>(null) }

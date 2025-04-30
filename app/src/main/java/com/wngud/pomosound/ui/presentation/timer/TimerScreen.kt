@@ -50,6 +50,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun TimerScreen(
+    onBackClick: () -> Unit,
     timerViewModel: TimerViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -110,7 +111,10 @@ fun TimerScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CountdownScreen(onTimerStart = { applyBlur = false })
+                CountdownScreen(
+                    onTimerStart = { applyBlur = false },
+                    onBackClick = onBackClick
+                )
             }
         }
     }
@@ -131,11 +135,15 @@ fun VideoPlayer(exoPlayer: ExoPlayer, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CountdownScreen(onTimerStart: () -> Unit) {
+fun CountdownScreen(
+    onTimerStart: () -> Unit,
+    onBackClick: () -> Unit
+) {
     var count by remember { mutableStateOf(5) }
     var showLetsGo by remember { mutableStateOf(false) }
     var showTimer by remember { mutableStateOf(false) }
     var showRest by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
     val scale = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
@@ -217,8 +225,7 @@ fun CountdownScreen(onTimerStart: () -> Unit) {
                     totalTime = 5 * 60 * 1000L,
                     timeColor = gradientColors,
                     endAction = {
-                        showTimer = true
-                        showRest = false
+                        onBackClick()
                     },
                     modifier = Modifier.size(300.dp)
                 )

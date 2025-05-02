@@ -15,8 +15,8 @@ private val DarkColorScheme = darkColorScheme(
     secondary = PurpleGrey80,
     tertiary = Pink80,
     surfaceContainerHighest = DarkGray,
-    surfaceContainerLowest = Gray
-)
+    surfaceContainerLowest = Gray,
+    errorContainer = Red
 
 private val LightColorScheme = lightColorScheme(
     primary = Green,

@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wngud.pomosound.navigation.Screen
+import com.wngud.pomosound.ui.presentation.favoriteSound.FavoriteSoundsScreen
 import com.wngud.pomosound.ui.presentation.home.HomeScreen
 import com.wngud.pomosound.ui.presentation.setting.SettingScreen
 import com.wngud.pomosound.ui.presentation.sound.SoundScreen
@@ -73,14 +74,22 @@ fun PomoSoundNavHost(
         ) {
             SoundScreen(
                 onBackClick = { navController.popBackStack() },
-                onNextClick = { navController.navigate(Screen.Timer.createRoute(it)) }
+                onNextClick = { navController.navigate(Screen.Timer.createRoute(it)) },
+                onFavoriteClick = { navController.navigate(Screen.Favorite.route) }
             )
         }
         composable(
             route = Screen.Timer.route,
             arguments = Screen.Timer.navArguments
         ) {
-            TimerScreen()
+            TimerScreen(
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+        composable(Screen.Favorite.route) {
+            FavoriteSoundsScreen(
+                onBackClick = { navController.popBackStack() },
+            )
         }
     }
 }

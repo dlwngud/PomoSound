@@ -29,4 +29,6 @@ sealed class Screen(
     ) {
         fun createRoute(placeId: Int) = "timer/${placeId}"
     }
+
+    data object Favorite : Screen("favorite")
 }

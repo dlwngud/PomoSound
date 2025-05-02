@@ -25,10 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,16 +50,9 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun TimerScreen(
+    onBackClick: () -> Unit,
     timerViewModel: TimerViewModel = hiltViewModel(),
 ) {
-    /*
-    신경과학적으로 입증된 방법
-    집중 모드 활성화:
-
-    소리내어 "5, 4, 3, 2, 1" 카운트다운
-    깊게 숨을 들이마시고 잠시 참기
-    일을 시작하세요!
-    */
     val context = LocalContext.current
     var applyBlur by remember { mutableStateOf(true) }
     var thumbnail by remember { mutableStateOf<Bitmap?>(null) }
@@ -66,7 +61,8 @@ fun TimerScreen(
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-            val videoUri = Uri.parse("android.resource://${context.packageName}/${uiState.bgResource}")
+            val videoUri =
+                Uri.parse("android.resource://${context.packageName}/${uiState.bgResource}")
             val mediaItem = MediaItem.fromUri(videoUri)
             setMediaItem(mediaItem)
             repeatMode = Player.REPEAT_MODE_ONE
@@ -98,7 +94,7 @@ fun TimerScreen(
                     .fillMaxSize()
             )
 
-            if(applyBlur) {
+            if (applyBlur) {
                 thumbnail?.let {
                     Image(
                         bitmap = it.asImageBitmap(),
@@ -115,7 +111,10 @@ fun TimerScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CountdownScreen(onTimerStart = { applyBlur = false })
+                CountdownScreen(
+                    onTimerStart = { applyBlur = false },
+                    onBackClick = onBackClick
+                )
             }
         }
     }
@@ -136,10 +135,15 @@ fun VideoPlayer(exoPlayer: ExoPlayer, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CountdownScreen(onTimerStart: () -> Unit) {
+fun CountdownScreen(
+    onTimerStart: () -> Unit,
+    onBackClick: () -> Unit
+) {
     var count by remember { mutableStateOf(5) }
     var showLetsGo by remember { mutableStateOf(false) }
     var showTimer by remember { mutableStateOf(false) }
+    var showRest by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
     val scale = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
@@ -186,6 +190,7 @@ fun CountdownScreen(onTimerStart: () -> Unit) {
                     color = Color.White
                 )
             }
+
             showLetsGo -> {
                 Text(
                     text = "Let's Go!",
@@ -196,9 +201,32 @@ fun CountdownScreen(onTimerStart: () -> Unit) {
                     color = Color.White
                 )
             }
+
             showTimer -> {
                 PomodoroTimer(
                     totalTime = 25 * 60 * 1000L,
+                    timeColor = listOf(Color.White, Color.White),
+                    endAction = {
+                        showTimer = false
+                        showRest = true
+                    },
+                    modifier = Modifier.size(300.dp)
+                )
+            }
+
+            showRest -> {
+                val gradientColors =
+                    listOf(
+                        MaterialTheme.colorScheme.primary,
+                        Color.White,
+                        MaterialTheme.colorScheme.primary
+                    )
+                PomodoroTimer(
+                    totalTime = 5 * 60 * 1000L,
+                    timeColor = gradientColors,
+                    endAction = {
+                        onBackClick()
+                    },
                     modifier = Modifier.size(300.dp)
                 )
             }
@@ -209,6 +237,8 @@ fun CountdownScreen(onTimerStart: () -> Unit) {
 @Composable
 fun PomodoroTimer(
     totalTime: Long,
+    timeColor: List<Color>,
+    endAction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var remainingTime by remember { mutableStateOf(totalTime) }
@@ -217,6 +247,8 @@ fun PomodoroTimer(
         if (remainingTime > 0) {
             delay(1000L)
             remainingTime -= 1000L
+        } else {
+            endAction()
         }
     }
 
@@ -233,7 +265,11 @@ fun PomodoroTimer(
             fontSize = 70.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            color = Color.White
+            style = TextStyle(
+                brush = Brush.linearGradient(
+                    colors = timeColor
+                )
+            )
         )
     }
 }
@@ -252,9 +288,15 @@ fun TimerScreenPreview() {
 @Composable
 fun PomodoroTimerPreview() {
     PomoSoundTheme {
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp), contentAlignment = Alignment.Center
+        ) {
             PomodoroTimer(
                 totalTime = 25 * 60 * 1000L,
+                timeColor = listOf(MaterialTheme.colorScheme.primary),
+                endAction = {},
                 modifier = Modifier.size(300.dp)
             )
         }

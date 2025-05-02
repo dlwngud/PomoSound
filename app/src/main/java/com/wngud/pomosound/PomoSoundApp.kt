@@ -82,7 +82,9 @@ fun PomoSoundNavHost(
             route = Screen.Timer.route,
             arguments = Screen.Timer.navArguments
         ) {
-            TimerScreen()
+            TimerScreen(
+                onBackClick = { navController.popBackStack() },
+            )
         }
         composable(Screen.Favorite.route) {
             FavoriteSoundsScreen()

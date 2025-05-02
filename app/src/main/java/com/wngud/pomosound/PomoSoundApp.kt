@@ -87,7 +87,9 @@ fun PomoSoundNavHost(
             )
         }
         composable(Screen.Favorite.route) {
-            FavoriteSoundsScreen()
+            FavoriteSoundsScreen(
+                onBackClick = { navController.popBackStack() },
+            )
         }
     }
 }

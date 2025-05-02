@@ -39,8 +39,8 @@ import com.wngud.pomosound.ui.theme.PomoSoundTheme
 
 @Composable
 fun FavoriteSoundsScreen(
+    onBackClick: () -> Unit = {},
     viewModel: FavoriteSoundsViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -50,7 +50,7 @@ fun FavoriteSoundsScreen(
                 title = "즐겨찾기한 소리",
                 navigationIcon = Icons.Filled.Close,
                 actionIcon = null,
-                onNavigationClick = onNavigateBack,
+                onNavigationClick = onBackClick,
                 onActionClick = { } // No action needed in this screen's top bar
             )
         },

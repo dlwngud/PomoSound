@@ -23,11 +23,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetState
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.rememberCoroutineScope
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingScreen(
     onBackClick: () -> Unit
 ) {
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var selectedTime by remember { mutableStateOf(25) } // Default time
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             CustomTopAppBar(
@@ -48,7 +60,7 @@ fun SettingScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp)
         ) {
-            TimerSettingsSection()
+            TimerSettingsSection(onTimeSettingClick = { showBottomSheet = true })
 
             ScreenSettingsSection()
 
@@ -59,17 +71,106 @@ fun SettingScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+
+    if (showBottomSheet) {
+        TimePickerBottomSheet(
+            onTimeSelected = { selectedTime ->
+                // Handle selected time
+                println("Selected time: $selectedTime")
+            },
+            onDismiss = {
+                // Optional additional dismiss logic
+            },
+            sheetState = sheetState,
+            showBottomSheet = showBottomSheet,
+            onDismissRequest = {
+                showBottomSheet = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerBottomSheet(
+    onTimeSelected: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    sheetState: SheetState,
+    showBottomSheet: Boolean,
+    onDismissRequest: () -> Unit
+) {
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismissRequest,
+            sheetState = sheetState,
+            content = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "시간 선택",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Scrollable time picker
+                    val timeOptions = remember { (25..60 step 5).toList() }
+                    val scrollState = rememberScrollState()
+                    val itemHeight = 40
+                    Column(
+                        modifier = Modifier
+                            .height(150.dp)
+                            .verticalScroll(scrollState),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        timeOptions.forEach { time ->
+                            Text(
+                                text = "$time 분",
+                                fontSize = 24.sp,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = onDismiss) {
+                            Text("취소")
+                        }
+                        TextButton(onClick = {
+                            // Calculate the selected time based on scroll position
+                            val selectedIndex = (scrollState.value / itemHeight)
+                            val selectedTime = timeOptions.getOrElse(selectedIndex) { 25 } // Default to 25
+                            onTimeSelected(selectedTime)
+                            onDismissRequest()
+                        }) {
+                            Text("확인")
+                        }
+                    }
+                }
+            }
+        )
+    }
 }
 
 @Composable
-fun TimerSettingsSection() {
+fun TimerSettingsSection(onTimeSettingClick: () -> Unit) {
     SectionHeader(title = "타이머 설정")
 
     SettingItem(
         iconBackground = MaterialTheme.colorScheme.surfaceContainerLowest,
         icon = "⏰",
         title = "시간 설정",
-        description = "기본 25분 외에 자유 입력 또는 미리 설정된 옵션"
+        description = "기본 25분 외에 자유 입력 또는 미리 설정된 옵션",
+        onClick = onTimeSettingClick // Add onClick
     )
 
     SettingItem(
@@ -200,12 +301,14 @@ fun SettingItem(
     iconBackground: Color,
     icon: String,
     title: String,
-    description: String
+    description: String,
+    onClick: () -> Unit = {} // Add onClick
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 6.dp)
+            .clickable { onClick() }, // Make clickable
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest

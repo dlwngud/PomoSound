@@ -1,5 +1,6 @@
 package com.wngud.pomosound.ui.presentation.setting
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,9 +27,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.SheetState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalDensity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,91 +80,60 @@ fun SettingScreen(
     }
 
     if (showBottomSheet) {
-        TimePickerBottomSheet(
-            onTimeSelected = { selectedTime ->
-                // Handle selected time
-                println("Selected time: $selectedTime")
-            },
-            onDismiss = {
-                // Optional additional dismiss logic
-            },
-            sheetState = sheetState,
-            showBottomSheet = showBottomSheet,
-            onDismissRequest = {
-                showBottomSheet = false
-            }
-        )
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            contentColor = Color.White
+        ) {
+            TimePickerBottomSheet()
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TimePickerBottomSheet(
-    onTimeSelected: (Int) -> Unit,
-    onDismiss: () -> Unit,
-    sheetState: SheetState,
-    showBottomSheet: Boolean,
-    onDismissRequest: () -> Unit
-) {
-    if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = onDismissRequest,
-            sheetState = sheetState,
-            content = {
-                Column(
+fun TimePickerBottomSheet() {
+    val minute by remember { mutableStateOf(25) }
+
+    val minuteListState = rememberLazyListState(minute - 25)
+
+    val density = LocalDensity.current
+    val threshold = remember { density.run { 20.dp.toPx() } } // 한 칸 높이의 절반
+    val min by remember { derivedStateOf { (minuteListState.firstVisibleItemIndex + if (minuteListState.firstVisibleItemScrollOffset >= threshold) 26 else 25) } }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+    ) {
+        LazyColumn(
+            state = minuteListState,
+            contentPadding = PaddingValues(16.dp, 80.dp),
+            flingBehavior = rememberSnapFlingBehavior(minuteListState),
+            modifier = Modifier
+                .height(200.dp)
+        ) {
+            items((25..60).toList()) { int ->
+                val textColor by animateColorAsState(
+                    if (int == min) MaterialTheme.colorScheme.primary else Color.White
+                )
+
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .height(40.dp)
                 ) {
-                    Text(
-                        text = "시간 선택",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                    BasicText(
+                        text = "${int}분",
+                        style = LocalTextStyle.current.copy(
+                            fontSize = 23.sp,
+                            fontWeight = FontWeight.Normal
+                        ),
+                        color = { textColor }
                     )
-
-                    // Scrollable time picker
-                    val timeOptions = remember { (25..60 step 5).toList() }
-                    val scrollState = rememberScrollState()
-                    val itemHeight = 40
-                    Column(
-                        modifier = Modifier
-                            .height(150.dp)
-                            .verticalScroll(scrollState),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        timeOptions.forEach { time ->
-                            Text(
-                                text = "$time 분",
-                                fontSize = 24.sp,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = onDismiss) {
-                            Text("취소")
-                        }
-                        TextButton(onClick = {
-                            // Calculate the selected time based on scroll position
-                            val selectedIndex = (scrollState.value / itemHeight)
-                            val selectedTime = timeOptions.getOrElse(selectedIndex) { 25 } // Default to 25
-                            onTimeSelected(selectedTime)
-                            onDismissRequest()
-                        }) {
-                            Text("확인")
-                        }
-                    }
                 }
             }
-        )
+        }
     }
 }
 

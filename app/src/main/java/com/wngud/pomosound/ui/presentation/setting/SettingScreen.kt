@@ -284,6 +284,7 @@ fun SettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
+            .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }, // Make clickable
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(

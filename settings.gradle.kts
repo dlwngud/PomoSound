@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "PomoSound"
 include(":app")
- 
+include(":music_pack")
+include(":video_pack")

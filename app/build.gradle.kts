@@ -10,6 +10,7 @@ plugins {
 android {
     namespace = "com.wngud.pomosound"
     compileSdk = 35
+    assetPacks += listOf(":music_pack", ":video_pack")
 
     defaultConfig {
         applicationId = "com.wngud.pomosound"
